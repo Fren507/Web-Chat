@@ -5,6 +5,12 @@ export function setupVerificationInput(): HTMLInputElement[] {
 
     for (const [index, input] of inputs.entries()) {
         input.addEventListener("input", () => {
+            const userInput = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+            if (userInput.length != 1) {
+                input.value = "";
+                return;
+            }
+
             input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
             if (input.value && index < inputs.length - 1) {
@@ -25,6 +31,16 @@ export function setupVerificationInput(): HTMLInputElement[] {
             if (event.key === "ArrowRight" && index < inputs.length - 1) {
                 event.preventDefault();
                 inputs[index + 1].focus();
+            }
+
+            if (event.key === "ArrowUp") {
+                event.preventDefault();
+                inputs[11].focus();
+            }
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                inputs[0].focus();
             }
         });
     }
@@ -52,7 +68,7 @@ export function setupVerificationInput(): HTMLInputElement[] {
     return inputs;
 }
 
-interface VerificationProfile {
+export interface VerificationProfile {
     profileUUID: string;
     playerUUID: string;
     expiresAt: number;
@@ -69,7 +85,7 @@ export interface VerificationReturn {
 
 export async function verifyVerificationCode(
     token: string,
-): Promise<VerificationReturn | null> {
+): Promise<VerificationReturn> {
     console.warn(token);
     if (!token || token.length !== 12) return {valid: false, profile: null};
     const response = await fetch("http://100.109.207.66:8080/verify", {

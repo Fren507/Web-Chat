@@ -18,7 +18,7 @@ public class WebChat implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Hello Fabric world!");
 
-        WebSocketServer socket = new WebSocketServer(8081);
+        WebSocketServer socket = new WebSocketServer(9092);
         VerificationAPI api = new VerificationAPI();
         VerifiedProfileManager manager = new VerifiedProfileManager();
 

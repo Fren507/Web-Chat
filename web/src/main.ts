@@ -1,5 +1,5 @@
-import {connectWebSocket} from "./websocket.ts";
-import {setupVerificationInput, verifyVerificationCode,} from "./verificationCode.ts";
+import {setupVerificationInput, type VerificationProfile, verifyVerificationCode} from "./verificationCode.ts";
+import {io} from "socket.io-client"
 import "./assets/css/style.css";
 import "./assets/css/code.css"
 
@@ -58,21 +58,53 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 const loginDialog = document.querySelector<HTMLDialogElement>("#login")!;
 loginDialog.showModal();
 
-let verificationCode = "";
+function connectWebSocket(profile: VerificationProfile) {
+    function createMessage(message: string): {
+        token: string,
+        message: string
+    } {
+        return {token: profile.token, message: message}
+    }
+
+    const socket = io("http://100.109.207.66:9092")
+
+    socket.on("connect", () => {
+        console.log("Connected to Java Server!");
+
+        // Send a message
+        socket.emit("chatMessage", createMessage(`Hallo von ${profile.username}!`));
+    });
+
+// Listen for welcome message
+    socket.on("welcome", (msg) => {
+        console.log("Server says:", msg);
+    });
+
+// Listen for broadcasted messages
+    socket.on("newMessage", (data) => {
+        console.log(`${data.username}: ${data.message}`);
+    });
+}
+
 const verificationInputs = setupVerificationInput();
 verificationInputs.forEach((input) => {
     input.addEventListener("input", () => {
-        verificationCode = verificationInputs.map((i) => i.value).join("");
+        const verificationCode = verificationInputs.map((i) => i.value).join("");
+
+        // Erst abschicken, wenn WIRKLICH alle 12 Zeichen eingegeben wurden!
+        if (verificationCode.length !== 12) return;
+
         verifyVerificationCode(verificationCode).then((verificationReturn) => {
-            if (verificationReturn.valid) {
+            if (verificationReturn.valid && verificationReturn.profile) {
                 loginDialog.close();
-                connectWebSocket();
+                connectWebSocket(verificationReturn.profile);
             } else {
                 console.log("Invalid verification code");
             }
         });
     });
 });
+
 
 // // Initialize WebSocket connection
 // const socket = connectWebSocket();

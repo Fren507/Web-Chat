@@ -1,48 +1,55 @@
 package com.fren507.webchat;
 
-import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
+import com.corundumstudio.socketio.Configuration;
+import com.corundumstudio.socketio.SocketIOServer;
+import com.fren507.webchat.models.ChatMessage;
 
-public class WebSocketServer extends org.java_websocket.server.WebSocketServer {
+public class WebSocketServer {
+
+    private final int port;
+    private SocketIOServer server;
 
     public WebSocketServer(int port) {
-        super(new java.net.InetSocketAddress(port));
+        this.port = port;
     }
 
-    @Override
-    public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        System.out.println("Client verbunden: " + conn.getRemoteSocketAddress());
+    // Changed from "public static void start()" to "public void start()"
+    public void start() {
+        Configuration config = new Configuration();
+        config.setHostname("0.0.0.0");
+        config.setPort(port);
 
-        // Greeting only to the newly connected user
-        conn.send("Verbunden mit Web Chat!");
+        server = new SocketIOServer(config);
 
-        // Notify everyone else that someone joined
-        broadcast("Ein neuer Client ist dem Chat beigetreten!");
-    }
+        // 3. Connection Listener
+        server.addConnectListener(client -> {
+            System.out.println("Client connected: " + client.getSessionId());
 
-    @Override
-    public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        System.out.println("Client getrennt: " + reason);
+            // Send a welcome event back to this specific client
+            client.sendEvent("welcome", "Connected to Netty-SocketIO server!");
+        });
 
-        // Notify all remaining users
-        broadcast("Ein Client hat den Chat verlassen.");
-    }
+        // 4. Disconnection Listener
+        server.addDisconnectListener(client -> {
+            System.out.println("Client disconnected: " + client.getSessionId());
+        });
 
-    @Override
-    public void onMessage(WebSocket conn, String message) {
-        System.out.println("Nachricht received: " + message);
+        // 5. Custom Event Listener: "chatMessage"
+        server.addEventListener("chatMessage", ChatMessage.class, (client, data, ackSender) -> {
+            System.out.println(data.getUsername() + ": " + data.getMessage());
 
-        // Instead of echo (conn.send), send to ALL connected clients!
-        broadcast(message);
-    }
+            // Broadcast the message to ALL connected clients
+            server.getBroadcastOperations().sendEvent("newMessage", data);
+        });
 
-    @Override
-    public void onError(WebSocket conn, Exception ex) {
-        ex.printStackTrace();
-    }
+        // 6. Start the server!
+        server.start();
+        System.out.println("🚀 Socket.IO Server started on port 9092!");
 
-    @Override
-    public void onStart() {
-        System.out.println("WebSocket Server gestartet!");
+        // Prevent the main thread from exiting instantly
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Stopping Socket.IO server...");
+            server.stop();
+        }));
     }
 }
