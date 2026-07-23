@@ -1,0 +1,235 @@
+@font-face {
+    font-family: "Minecraft";
+    src: url("/MinecraftRegular.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Minecraft";
+    src: url("/MinecraftBold.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Minecraft";
+    src: url("/MinecraftItalic.otf") format("opentype");
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Minecraft";
+    src: url("/MinecraftBoldItalic.otf") format("opentype");
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Monocraft";
+    src: url("/Monocraft-otf/Monocraft.otf") format("opentype");
+    font-display: swap;
+}
+
+
+:root {
+    --mc-bg: #111;
+    --mc-panel: #313131;
+    --mc-panel-dark: #1b1b1b;
+
+    --mc-border-light: #707070;
+    --mc-border-dark: #101010;
+
+    --mc-green: #86d562;
+    --mc-green-light: #a0e081;
+
+    --mc-blue: #55ffff;
+
+    --shadow: inset 2px 2px 0 #555,
+    inset -2px -2px 0 #000,
+    4px 4px 0 #000;
+}
+
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    font-family: "Minecraft", sans-serif;
+
+    background: radial-gradient(circle at top, #222 0%, var(--mc-bg) 60%);
+
+    color: white;
+
+    image-rendering: pixelated;
+}
+
+
+input,
+textarea,
+button,
+select {
+    font-family: "Minecraft", sans-serif;
+}
+
+
+/* Minecraft-ähnliche Panels */
+
+details {
+    background: var(--mc-panel);
+
+    border: 2px solid var(--mc-border-dark);
+
+    padding: 0.5rem;
+
+    box-shadow: inset 2px 2px 0 var(--mc-border-light),
+    inset -2px -2px 0 #000;
+
+    transition: 150ms ease;
+}
+
+
+summary {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.5rem;
+    user-select: none;
+    list-style: none;
+}
+
+summary::before {
+    content: ">";
+    display: inline-block;
+
+    margin-right: .5rem;
+
+    transition: transform .15s ease;
+}
+
+details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+details[open] summary {
+    margin-bottom: 0.5rem;
+
+    border-bottom: 2px solid #555;
+}
+
+
+/* Dialog */
+
+dialog {
+    width: min(90vw, 750px);
+    max-height: 90vh;
+    overflow-y: auto;
+
+    background: var(--mc-panel);
+
+    color: white;
+
+    border: 3px solid #000;
+
+    padding: 1.5rem;
+
+    box-shadow: inset 3px 3px 0 var(--mc-border-light),
+    inset -3px -3px 0 #000,
+    8px 8px 0 rgba(0, 0, 0, .8);
+
+    animation: minecraft-open 180ms steps(4);
+}
+
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, .65);
+}
+
+
+@keyframes minecraft-open {
+    from {
+        opacity: 0;
+        transform: scale(.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+/* Verification Code Container */
+.verification-code {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: flex-start;
+}
+
+.verification-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Character Inputs */
+.verification-character {
+    width: 3rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-content: center;
+
+    background-color: #151515;
+    color: #ffffff;
+    font-family: "Monocraft", monospace;
+    font-size: 1.3rem;
+    text-align: center;
+
+    border: 2px solid #000000;
+    box-shadow: inset 2px 2px 0 #444444,
+    inset -2px -2px 0 #000000;
+
+    transition: transform 0.1s ease,
+    box-shadow 0.1s ease,
+    border-color 0.1s ease;
+}
+
+/* States */
+.verification-character:hover {
+    border-color: var(--mc-green, #55ff55);
+}
+
+.verification-character:focus,
+.verification-character:focus-visible {
+    outline: none;
+    border-color: var(--mc-green-light, #86d562);
+    box-shadow: inset 2px 2px 0 #555555,
+    inset -2px -2px 0 #000000,
+    0 0 0 3px rgba(134, 213, 98, 0.35);
+    transform: translateY(-2px);
+}
+
+.verification-character:active {
+    transform: translateY(0);
+    box-shadow: inset -2px -2px 0 #555555,
+    inset 2px 2px 0 #000000;
+}
+
+/* Separator */
+.separator {
+    color: #aaaaaa;
+    font-family: "Monocraft", monospace;
+    opacity: 0.7;
+    user-select: none;
+}

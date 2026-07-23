@@ -1,0 +1,92 @@
+/* Schlüsselwörter: const, let, function, return, if ... */
+span.keyword {
+    color: #ff7b72;
+    font-weight: 600;
+}
+
+/* Variablen- und Funktionsnamen */
+span.identifier {
+    color: #d2a8ff;
+}
+
+/* Funktionsnamen */
+span.function {
+    color: #d2a8ff;
+}
+
+/* Parameter */
+span.parameter {
+    color: #ffa657;
+}
+
+/* Strings: "Hallo", 'Welt', `Template` */
+span.string {
+    color: #a5d6ff;
+}
+
+/* Zahlen: 123, 3.14 */
+span.number {
+    color: #79c0ff;
+}
+
+/* Kommentare */
+span.comment {
+    color: #8b949e;
+    font-style: italic;
+}
+
+/* Operatoren: + - = => */
+span.operator {
+    color: #ff7b72;
+}
+
+/* Klammern: () {} [] */
+span.punctuation {
+    color: #c9d1d9;
+}
+
+/* Eigenschaften/Keys: name: "Jason" */
+span.property {
+    color: #7ee787;
+}
+
+/* Built-ins: console, Math, JSON ... */
+span.builtin {
+    color: #79c0ff;
+}
+
+/* Typen: number, string, int */
+span.type {
+    color: #79c0ff;
+    font-weight: 500;
+}
+
+pre,
+code {
+    background: #0d1117;
+    color: #c9d1d9;
+
+    border-radius: 0.35rem;
+
+    overflow-x: auto;
+    white-space: nowrap;
+
+    font-family: "Monocraft", monospace;
+    font-size: 0.8rem;
+    line-height: 1;
+
+    padding: 0.35rem;
+}
+
+pre {
+    padding: 1rem;
+    line-height: 1.5;
+    border-radius: 0.75rem;
+    white-space: pre-wrap;
+}
+
+pre code {
+    padding: 0;
+    border-radius: 0;
+    white-space: pre-wrap;
+}
