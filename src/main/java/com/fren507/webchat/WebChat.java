@@ -18,20 +18,21 @@ public class WebChat implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Hello Fabric world!");
 
-        WebSocketServer socket = new WebSocketServer(9092);
-        VerificationAPI api = new VerificationAPI();
         VerifiedProfileManager manager = new VerifiedProfileManager();
+        WebSocketServer socket = new WebSocketServer(9092, manager, LOGGER);
+        WebServer api = new WebServer();
 
         try {
             socket.start();
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("Failed to start WebSocket", e);
         }
 
         try {
-            api.start(8080, manager);
+            api.start(8080, manager, LOGGER);
         } catch (Exception e) {
             LOGGER.error("Failed to start API", e);
         }
     }
 }
+

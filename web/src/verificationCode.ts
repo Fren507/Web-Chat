@@ -1,3 +1,7 @@
+import {connectWebSocket} from "./websocket.ts";
+
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+
 export function setupVerificationInput(): HTMLInputElement[] {
     const inputs = [
         ...document.querySelectorAll<HTMLInputElement>(".verification-character"),
@@ -35,7 +39,7 @@ export function setupVerificationInput(): HTMLInputElement[] {
 
             if (event.key === "ArrowUp") {
                 event.preventDefault();
-                inputs[11].focus();
+                inputs[inputs.length - 1].focus();
             }
 
             if (event.key === "ArrowDown") {
@@ -46,6 +50,7 @@ export function setupVerificationInput(): HTMLInputElement[] {
     }
 
     const container = document.querySelector<HTMLDivElement>(".verification-code")!;
+    const loginDialog = document.querySelector<HTMLDialogElement>("#login")!;
 
     container.addEventListener("paste", (event: ClipboardEvent) => {
         event.preventDefault();
@@ -63,6 +68,8 @@ export function setupVerificationInput(): HTMLInputElement[] {
         });
 
         inputs[Math.min(text.length, 12) - 1].focus();
+
+        verificationLogic(inputs, loginDialog);
     });
 
     return inputs;
@@ -73,7 +80,7 @@ export interface VerificationProfile {
     playerUUID: string;
     expiresAt: number;
     createdAt: number;
-    token: string;
+    sessionID: string;
     username: string;
     valid: boolean;
 }
@@ -83,12 +90,29 @@ export interface VerificationReturn {
     profile: VerificationProfile | null;
 }
 
+export function verificationLogic(verificationInputs: HTMLInputElement[], loginDialog: HTMLDialogElement) {
+    const verificationCode = verificationInputs.map((i) => i.value).join("");
+
+    if (verificationCode.length !== 12) return;
+
+    verifyVerificationCode(verificationCode).then((verificationReturn) => {
+        if (verificationReturn.valid && verificationReturn.profile) {
+            loginDialog.close();
+            sessionStorage.setItem("web-chat-session", verificationReturn.profile.sessionID);
+            sessionStorage.setItem("web-chat-profile", JSON.stringify(verificationReturn.profile));
+            connectWebSocket();
+        } else {
+            console.log("Invalid verification code");
+        }
+    });
+}
+
 export async function verifyVerificationCode(
     token: string,
 ): Promise<VerificationReturn> {
-    console.warn(token);
+    console.log(token);
     if (!token || token.length !== 12) return {valid: false, profile: null};
-    const response = await fetch("http://100.109.207.66:8080/verify", {
+    const response = await fetch(`${SERVER_URL}/verify`, {
         method: "POST",
         body: token,
     });
@@ -98,7 +122,7 @@ export async function verifyVerificationCode(
 
     const data = await response.json() as VerificationReturn;
 
-    console.warn(response, data);
+    console.log(response, data);
 
     return data;
 }

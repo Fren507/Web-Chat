@@ -1,7 +1,9 @@
-import {setupVerificationInput, type VerificationProfile, verifyVerificationCode} from "./verificationCode.ts";
-import {io} from "socket.io-client"
+import {setupVerificationInput, verificationLogic} from "./verificationCode.ts";
 import "./assets/css/style.css";
 import "./assets/css/code.css"
+import {connectWebSocket, createMessage} from "./websocket.ts";
+
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const verificationCodeHtml = `
 <div class="verification-code">
@@ -35,8 +37,6 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <button id="send-btn" disabled>Senden</button>
   </div>
 
-  <button command="show-modal" commandfor="my-dialog">Open dialog</button> -->
-
   <dialog id="login" closedby="none">
     <p>Um diesen Chat nutzten zu können, müssen Sie sich anmelden!</p>
     <details>
@@ -58,75 +58,89 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 const loginDialog = document.querySelector<HTMLDialogElement>("#login")!;
 loginDialog.showModal();
 
-function connectWebSocket(profile: VerificationProfile) {
-    function createMessage(message: string): {
-        token: string,
-        message: string
-    } {
-        return {token: profile.token, message: message}
+const sessionProfile = sessionStorage.getItem("web-chat-profile");
+if (sessionProfile) {
+    loginDialog.close();
+    connectWebSocket();
+}
+
+interface PlayerData {
+    id: string,
+    name: string,
+    properties: {
+        name: string,
+        value: string
+    }[],
+    profileActions: unknown[];
+}
+
+interface TexturesObject {
+    timestamp: number;
+    profileId: string;
+    profileName: string;
+    textures: {
+        SKIN?: {
+            url: string;
+        };
+        CAPE?: {
+            url: string;
+        };
+    };
+}
+
+export async function getPlayerSkin(playerUUID: string): Promise<string | null> {
+    const response = await fetch(`${SERVER_URL}/skins/` + playerUUID);
+    if (!response.ok) return null;
+
+    const data = await response.json() as PlayerData;
+
+    const texture = data.properties.find(property => property.name === "textures");
+    if (!texture?.value) return null;
+
+    try {
+        const decoded = JSON.parse(atob(texture.value)) as TexturesObject;
+        return decoded.textures.SKIN?.url ?? null;
+    } catch (error) {
+        console.error("Failed to decode Minecraft texture", error);
+        return null;
     }
-
-    const socket = io("http://100.109.207.66:9092")
-
-    socket.on("connect", () => {
-        console.log("Connected to Java Server!");
-
-        // Send a message
-        socket.emit("chatMessage", createMessage(`Hallo von ${profile.username}!`));
-    });
-
-// Listen for welcome message
-    socket.on("welcome", (msg) => {
-        console.log("Server says:", msg);
-    });
-
-// Listen for broadcasted messages
-    socket.on("newMessage", (data) => {
-        console.log(`${data.username}: ${data.message}`);
-    });
 }
 
 const verificationInputs = setupVerificationInput();
 verificationInputs.forEach((input) => {
-    input.addEventListener("input", () => {
-        const verificationCode = verificationInputs.map((i) => i.value).join("");
-
-        // Erst abschicken, wenn WIRKLICH alle 12 Zeichen eingegeben wurden!
-        if (verificationCode.length !== 12) return;
-
-        verifyVerificationCode(verificationCode).then((verificationReturn) => {
-            if (verificationReturn.valid && verificationReturn.profile) {
-                loginDialog.close();
-                connectWebSocket(verificationReturn.profile);
-            } else {
-                console.log("Invalid verification code");
-            }
-        });
-    });
+    input.addEventListener("input", () => verificationLogic(verificationInputs, loginDialog));
 });
 
+handleWebSocket();
 
-// // Initialize WebSocket connection
-// const socket = connectWebSocket();
+function handleWebSocket() {
+    const connectWebSocketReturn = connectWebSocket();
+    if (!connectWebSocketReturn.valid
+        || !connectWebSocketReturn.socket
+        || !connectWebSocketReturn.profile
+        || !connectWebSocketReturn.sessionID) {
+        const dialog = document.getElementById("login") as HTMLDialogElement;
+        dialog.showModal();
+    } else {
+        const messageInput =
+            document.querySelector<HTMLInputElement>("#message-input")!;
+        const sendBtn = document.querySelector<HTMLButtonElement>("#send-btn")!;
 
-// const messageInput =
-//   document.querySelector<HTMLInputElement>("#message-input")!;
-// const sendBtn = document.querySelector<HTMLButtonElement>("#send-btn")!;
+        const socket = connectWebSocketReturn.socket;
+        const sessionID = connectWebSocketReturn.sessionID;
+        const profile = connectWebSocketReturn.profile;
 
-// function sendMessage() {
-//   const text = messageInput.value.trim();
-//   if (text !== "" && socket.readyState === WebSocket.OPEN) {
-//     socket.send(text);
-//     messageInput.value = "";
-//   }
-// }
+        console.log(profile);
 
-// // Send on button click
-// sendBtn.addEventListener("click", sendMessage);
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (text !== "" && socket.connected) {
+                socket.emit("chatMessage", createMessage(text, sessionID))
+                messageInput.value = "";
+            }
+        }
 
-// // Send on Pressing 'Enter'
-// messageInput.addEventListener("keydown", (e) => {
-//   if (e.key === "Enter") {
-//     sendMessage();
-//   }
-// });
+        sendBtn.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keydown", e => e.key === "Enter" && sendMessage());
+    }
+}

@@ -42,3 +42,5 @@ replay_*.log
 # Website
 
 web/node_modules
+*.env
+!*.env.example

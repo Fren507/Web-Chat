@@ -13,11 +13,11 @@ public class VerifiedProfile {
     private final transient Instant created;
     private final long expiresLong;
     private final long createdLong;
-    private final String token;
+    private final String sessionID;
     private final String username;
     private boolean valid = true;
 
-    public VerifiedProfile(TokenData tokenData, String token) {
+    public VerifiedProfile(TokenData tokenData, String sessionID) {
         this.username = tokenData.getPlayerName();
         this.profileUUID = UUID.randomUUID();
         this.playerUUID = tokenData.getPlayerUUID();
@@ -29,13 +29,13 @@ public class VerifiedProfile {
         this.expiresLong = expires.toEpochMilli();
         this.createdLong = created.toEpochMilli();
 
-        this.token = token;
+        this.sessionID = sessionID;
     }
 
     // Getters
 
-    public String getToken() {
-        return token;
+    public String getSessionID() {
+        return sessionID;
     }
 
     public String getUsername() {

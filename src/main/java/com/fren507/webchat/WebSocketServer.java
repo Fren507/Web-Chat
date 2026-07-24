@@ -2,15 +2,25 @@ package com.fren507.webchat;
 
 import com.corundumstudio.socketio.Configuration;
 import com.corundumstudio.socketio.SocketIOServer;
+import com.fren507.webchat.managers.VerifiedProfileManager;
 import com.fren507.webchat.models.ChatMessage;
+import com.fren507.webchat.models.ChatMessageData;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.slf4j.Logger;
 
 public class WebSocketServer {
 
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final int port;
+    private final VerifiedProfileManager profileManager;
+    private final Logger LOGGER;
     private SocketIOServer server;
 
-    public WebSocketServer(int port) {
+    public WebSocketServer(int port, VerifiedProfileManager profileManager, Logger LOGGER) {
         this.port = port;
+        this.profileManager = profileManager;
+        this.LOGGER = LOGGER;
     }
 
     // Changed from "public static void start()" to "public void start()"
@@ -28,18 +38,21 @@ public class WebSocketServer {
             // Send a welcome event back to this specific client
             client.sendEvent("welcome", "Connected to Netty-SocketIO server!");
         });
-
-        // 4. Disconnection Listener
+        
         server.addDisconnectListener(client -> {
             System.out.println("Client disconnected: " + client.getSessionId());
         });
 
-        // 5. Custom Event Listener: "chatMessage"
-        server.addEventListener("chatMessage", ChatMessage.class, (client, data, ackSender) -> {
-            System.out.println(data.getUsername() + ": " + data.getMessage());
+        server.addEventListener("chatMessage", ChatMessageData.class, (client, data, ackSender) -> {
+            String sessionID = data.getSessionID();
+            String message = data.getMessage();
 
-            // Broadcast the message to ALL connected clients
-            server.getBroadcastOperations().sendEvent("newMessage", data);
+            profileManager.getProfileViaSession(sessionID)
+                    .map((profile) -> {
+                        ChatMessage chatMessage = new ChatMessage(profile.getUsername(), message);
+                        server.getBroadcastOperations().sendEvent("newMessage", chatMessage);
+                        return true;
+                    });
         });
 
         // 6. Start the server!

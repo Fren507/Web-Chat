@@ -21,11 +21,10 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
     // Socket
-    implementation "org.java-websocket:Java-WebSocket:1.6.0"
     implementation 'com.corundumstudio.socketio:netty-socketio:2.0.14'
 
     // Verify Mod
-    implementation files("libs/mc-auth-mod-1.0.0.jar")
+    implementation files("libs/mc-auth-mod-1.0.2.jar")
 }
 
 processResources {

@@ -14,63 +14,69 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class VerifiedProfileManager {
     private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("webchat");
-    private static final Path TOKENS_FILE = CONFIG_DIR.resolve("tokens.json");
+    private static final Path PROFILES_FILE = CONFIG_DIR.resolve("profiles.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private final List<VerifiedProfile> tokens = new CopyOnWriteArrayList<>();
+    private final List<VerifiedProfile> profiles = new CopyOnWriteArrayList<>();
 
     public VerifiedProfileManager() {
-        loadTokens();
+        loadProfiles();
     }
 
-    public void loadTokens() {
+    public void loadProfiles() {
         try {
             if (!Files.exists(CONFIG_DIR)) {
                 Files.createDirectories(CONFIG_DIR);
             }
-            if (Files.exists(TOKENS_FILE)) {
-                try (Reader reader = Files.newBufferedReader(TOKENS_FILE)) {
+            if (Files.exists(PROFILES_FILE)) {
+                try (Reader reader = Files.newBufferedReader(PROFILES_FILE)) {
                     List<VerifiedProfile> loaded = GSON.fromJson(reader, new TypeToken<List<VerifiedProfile>>() {
                     }.getType());
                     if (loaded != null) {
-                        tokens.clear();
-                        tokens.addAll(loaded);
+                        profiles.clear();
+                        profiles.addAll(loaded);
                     }
                 }
             }
-            cleanExpiredTokens();
+            cleanExpiredProfiles();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void saveTokens() {
+    public void saveProfiles() {
         try {
-            try (Writer writer = Files.newBufferedWriter(TOKENS_FILE)) {
-                GSON.toJson(tokens, writer);
+            try (Writer writer = Files.newBufferedWriter(PROFILES_FILE)) {
+                GSON.toJson(profiles, writer);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public Optional<VerifiedProfile> getProfileViaSession(String sessionID) {
+        this.cleanExpiredProfiles();
+        return this.profiles.stream().filter((t) -> t.getSessionID().equals(sessionID)).findFirst();
     }
 
     public VerifiedProfile createVerifiedProfile(TokenData tokenData) {
         VerifiedProfile newVerifiedProfile = new VerifiedProfile(tokenData, TokenGenerator.generateToken());
 
-        tokens.add(newVerifiedProfile);
-        saveTokens();
+        profiles.add(newVerifiedProfile);
+        saveProfiles();
 
         return newVerifiedProfile;
     }
 
-    public void cleanExpiredTokens() {
+    public void cleanExpiredProfiles() {
         Instant now = Instant.now();
         boolean changed = false;
-        for (VerifiedProfile profile : tokens) {
+        for (VerifiedProfile profile : profiles) {
             if (profile.isValid()
                     && profile.getExpires() != null
                     && profile.getExpires().isBefore(now)) {
@@ -78,6 +84,6 @@ public class VerifiedProfileManager {
                 changed = true;
             }
         }
-        if (changed) saveTokens();
+        if (changed) saveProfiles();
     }
 }

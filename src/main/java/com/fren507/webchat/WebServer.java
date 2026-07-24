@@ -7,16 +7,35 @@ import com.fren507.webchat.models.VerifiedProfile;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import org.slf4j.Logger;
 
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.UUID;
 
-public class VerificationAPI {
+public class WebServer {
+
 
     private static final Gson gson = new Gson();
 
-    public void start(int port, VerifiedProfileManager manager) throws Exception {
+    private static String fetchProfile(UUID uuid) throws Exception {
+        String cleanUuid = uuid.toString().replace("-", "");
+
+        var url = new java.net.URL(
+                "https://sessionserver.mojang.com/session/minecraft/profile/" + cleanUuid
+        );
+
+        try (var input = url.openStream()) {
+            return new String(
+                    input.readAllBytes(),
+                    StandardCharsets.UTF_8
+            );
+        }
+    }
+
+    public void start(int port, VerifiedProfileManager manager, Logger LOGGER) throws Exception {
 
         HttpServer server = HttpServer.create(
                 new InetSocketAddress(port),
@@ -47,7 +66,7 @@ public class VerificationAPI {
             );
 
             boolean valid = !token.isEmpty()
-                    && token.matches("^[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}$")
+                    && token.matches("^[A-Z0-9]{12}$")
                     && TokenAPI.isTokenValid(token);
 
             if (!valid) {
@@ -67,6 +86,67 @@ public class VerificationAPI {
             );
 
             sendJson(exchange, 200, new VerifyResponse(true, profile));
+        });
+
+        server.createContext("/skins", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+
+            String[] parts = path.split("/");
+
+            if (parts.length < 3) {
+                exchange.sendResponseHeaders(400, 0);
+                exchange.close();
+                return;
+            }
+
+            String playerUUID = parts[2];
+
+            try {
+                UUID uuid;
+
+                if (playerUUID.length() == 32) {
+                    playerUUID = playerUUID.replaceFirst(
+                            "(.{8})(.{4})(.{4})(.{4})(.{12})",
+                            "$1-$2-$3-$4-$5"
+                    );
+                }
+
+                uuid = UUID.fromString(playerUUID);
+
+                String response;
+
+                try {
+                    response = fetchProfile(uuid);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to fetch profile for {}", uuid, e);
+
+                    exchange.sendResponseHeaders(500, -1);
+                    exchange.close();
+                    return;
+                }
+
+                byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+
+                exchange.getResponseHeaders().set(
+                        "Content-Type",
+                        "application/json"
+                );
+
+                exchange.getResponseHeaders().set(
+                        "Access-Control-Allow-Origin",
+                        "*"
+                );
+
+                exchange.sendResponseHeaders(200, bytes.length);
+
+                try (OutputStream output = exchange.getResponseBody()) {
+                    output.write(bytes);
+                }
+
+            } catch (IllegalArgumentException e) {
+                exchange.sendResponseHeaders(400, 0);
+                exchange.close();
+            }
         });
 
         server.start();
