@@ -19,6 +19,15 @@ public class WebServer {
 
 
     private static final Gson gson = new Gson();
+    private final int port;
+    private final VerifiedProfileManager manager;
+    private final Logger LOGGER;
+
+    public WebServer(int port, VerifiedProfileManager manager, Logger LOGGER) {
+        this.port = port;
+        this.manager = manager;
+        this.LOGGER = LOGGER;
+    }
 
     private static String fetchProfile(UUID uuid) throws Exception {
         String cleanUuid = uuid.toString().replace("-", "");
@@ -35,7 +44,7 @@ public class WebServer {
         }
     }
 
-    public void start(int port, VerifiedProfileManager manager, Logger LOGGER) throws Exception {
+    public void start() throws Exception {
 
         HttpServer server = HttpServer.create(
                 new InetSocketAddress(port),
@@ -175,6 +184,10 @@ public class WebServer {
             e.printStackTrace();
         }
     }
+
+//     public URL getURL() {
+//
+//    }
 
     private record VerifyResponse(
             boolean valid,
