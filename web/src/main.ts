@@ -111,6 +111,11 @@ verificationInputs.forEach((input) => {
     input.addEventListener("input", () => verificationLogic(verificationInputs, loginDialog));
 });
 
+const messageInput = document.querySelector<HTMLInputElement>("#message-input")!;
+
+messageInput.addEventListener("input", () =>
+    messageInput.value = messageInput.value.replaceAll("§", ""));
+
 handleWebSocket();
 
 function handleWebSocket() {
