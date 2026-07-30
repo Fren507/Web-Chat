@@ -13,6 +13,7 @@ import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 
 import java.net.URI;
+import java.util.UUID;
 
 public class WebSocketServer {
 
@@ -59,7 +60,7 @@ public class WebSocketServer {
 
             profileManager.getProfileViaSession(sessionID)
                     .map((profile) -> {
-                        ChatMessage chatMessage = new ChatMessage(profile.getUsername(), message);
+                        ChatMessage chatMessage = new ChatMessage(profile.getUsername(), message, profile.getPlayerUUID(), true);
                         server.getBroadcastOperations().sendEvent("newMessage", chatMessage);
                         ChatUtil.broadcast(minecraftServer, chatMessage.getChatComponent(websiteURI));
                         return true;
@@ -76,5 +77,15 @@ public class WebSocketServer {
             System.out.println("Stopping Socket.IO server...");
             server.stop();
         }));
+    }
+
+    public void sendMessageToWeb(String message, String senderUsername, UUID senderUUID) {
+        if (server == null) return;
+        ChatMessage chatMessage = new ChatMessage(senderUsername, message, senderUUID, false);
+        server.getBroadcastOperations().sendEvent("newMessage", chatMessage);
+    }
+
+    public void stop() {
+        server.stop();
     }
 }

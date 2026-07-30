@@ -18,7 +18,6 @@ export function connectWebSocket(): {
     valid: boolean
 } {
     const status = document.querySelector("#status");
-    const title = document.querySelector("#title");
     const chatBox = document.querySelector("#chat-box");
     const messageInput =
         document.querySelector<HTMLInputElement>("#message-input");
@@ -46,7 +45,6 @@ export function connectWebSocket(): {
 
         socket.emit("chatMessage", createMessage(sessionID, `Hallo von ${profile.username}!`));
         if (status) status.textContent = "Verbunden";
-        if (title) title.textContent = "WebChat";
 
         // Enable inputs now that we're connected!
         if (messageInput) messageInput.disabled = false;
@@ -56,11 +54,13 @@ export function connectWebSocket(): {
     // Listen for broadcasted messages
     socket.on("newMessage", (data: {
         username: string,
-        message: string
+        message: string,
+        senderUUID: string,
+        fromWeb: boolean
     }) => {
         if (chatBox) {
             const msgElement = document.createElement("div");
-            msgElement.innerHTML = minecraftToHTML(`§r <${data.username}§r> ${data.message}`);
+            msgElement.innerHTML = minecraftToHTML(`§r <${data.username}${data.fromWeb ? " §b[WEB]" : ""}§r> ${data.message}`);
             chatBox.appendChild(msgElement);
             chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
         }

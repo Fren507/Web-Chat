@@ -22,6 +22,7 @@ public class WebServer {
     private final int port;
     private final VerifiedProfileManager manager;
     private final Logger LOGGER;
+    private HttpServer server;
 
     public WebServer(int port, VerifiedProfileManager manager, Logger LOGGER) {
         this.port = port;
@@ -46,7 +47,7 @@ public class WebServer {
 
     public void start() throws Exception {
 
-        HttpServer server = HttpServer.create(
+        server = HttpServer.create(
                 new InetSocketAddress(port),
                 0
         );
@@ -96,6 +97,9 @@ public class WebServer {
 
             sendJson(exchange, 200, new VerifyResponse(true, profile));
         });
+
+        // TODO: DU MUSST CASHEN!
+        //       SEHR WICHTIG!
 
         server.createContext("/skins", exchange -> {
             String path = exchange.getRequestURI().getPath();
@@ -161,6 +165,10 @@ public class WebServer {
         server.start();
     }
 
+    public void stop() {
+        server.stop(0);
+    }
+    
     private void sendJson(
             HttpExchange exchange,
             int status,

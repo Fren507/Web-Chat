@@ -7,18 +7,23 @@ import net.minecraft.network.chat.HoverEvent;
 import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
+import java.util.UUID;
 
 public class ChatMessage {
     private String username;
     private String message;
+    private boolean fromWeb;
+    private UUID senderUUID;
 
     // Default constructor is required for Jackson JSON parsing!
     public ChatMessage() {
     }
 
-    public ChatMessage(String username, String message) {
+    public ChatMessage(String username, String message, UUID senderUUID, boolean fromWeb) {
         this.username = username;
         this.message = message;
+        this.senderUUID = senderUUID;
+        this.fromWeb = fromWeb;
     }
 
     public String getUsername() {
@@ -35,6 +40,22 @@ public class ChatMessage {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isFromWeb() {
+        return fromWeb;
+    }
+
+    public void setFromWeb(boolean fromWeb) {
+        this.fromWeb = fromWeb;
+    }
+
+    public UUID getSenderUUID() {
+        return senderUUID;
+    }
+
+    public void setSenderUUID(UUID senderUUID) {
+        this.senderUUID = senderUUID;
     }
 
     public Component getMessageComponent() {

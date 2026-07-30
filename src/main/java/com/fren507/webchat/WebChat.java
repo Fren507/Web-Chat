@@ -3,6 +3,7 @@ package com.fren507.webchat;
 import com.fren507.webchat.managers.VerifiedProfileManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,13 +32,29 @@ public class WebChat implements ModInitializer {
             } catch (Exception e) {
                 LOGGER.error("Failed to start WebSocket", e);
             }
+
+            try {
+                api.start();
+            } catch (Exception e) {
+                LOGGER.error("Failed to start API", e);
+            }
         });
 
-        try {
-            api.start();
-        } catch (Exception e) {
-            LOGGER.error("Failed to start API", e);
-        }
+        ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
+            socket.sendMessageToWeb(message.signedContent(), sender.getPlainTextName(), sender.getUUID());
+        });
+
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            socket.stop();
+            api.stop();
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            socket.stop();
+            api.stop();
+        });
     }
+
 }
 

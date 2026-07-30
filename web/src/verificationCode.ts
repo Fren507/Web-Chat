@@ -98,6 +98,7 @@ export function verificationLogic(verificationInputs: HTMLInputElement[], loginD
     verifyVerificationCode(verificationCode).then((verificationReturn) => {
         if (verificationReturn.valid && verificationReturn.profile) {
             loginDialog.close();
+            loginDialog.classList.remove("modal-open")
             sessionStorage.setItem("web-chat-session", verificationReturn.profile.sessionID);
             sessionStorage.setItem("web-chat-profile", JSON.stringify(verificationReturn.profile));
             connectWebSocket();
