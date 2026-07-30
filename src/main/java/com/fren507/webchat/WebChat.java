@@ -29,7 +29,7 @@ public class WebChat implements ModInitializer {
 
         VerifiedProfileManager manager = new VerifiedProfileManager();
         WebServer api = new WebServer(8080, manager, LOGGER);
-        WebSocketServer socket = new WebSocketServer(9092, manager, LOGGER, URI.create("http://100.109.207.66:5173/"));
+        WebSocketServer socket = new WebSocketServer(9092, manager, LOGGER, URI.create("https://github.com/Fren507/Web-Chat/"));
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             try {
