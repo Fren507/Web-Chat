@@ -1,4 +1,4 @@
-package com.fren507.webchat;
+package com.fren507.webchat.website_backend;
 
 import com.fren507.mcauth.api.TokenAPI;
 import com.fren507.mcauth.model.TokenData;
@@ -11,18 +11,24 @@ import org.slf4j.Logger;
 
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WebServer {
 
-
     private static final Gson gson = new Gson();
+    private static final long CACHE_DURATION_MS = 30 * 60 * 1000; // 30 Minuten
     private final int port;
     private final VerifiedProfileManager manager;
     private final Logger LOGGER;
+    // Speichert UUID als String → CachedSkin (Gültig z.B. für 30 Minuten)
+    private final Map<String, CachedSkin> skinCache = new ConcurrentHashMap<>();
     private HttpServer server;
+    private boolean isRunning;
 
     public WebServer(int port, VerifiedProfileManager manager, Logger LOGGER) {
         this.port = port;
@@ -33,7 +39,7 @@ public class WebServer {
     private static String fetchProfile(UUID uuid) throws Exception {
         String cleanUuid = uuid.toString().replace("-", "");
 
-        var url = new java.net.URL(
+        URL url = new URL(
                 "https://sessionserver.mojang.com/session/minecraft/profile/" + cleanUuid
         );
 
@@ -46,14 +52,13 @@ public class WebServer {
     }
 
     public void start() throws Exception {
-
         server = HttpServer.create(
                 new InetSocketAddress(port),
                 0
         );
+        isRunning = true;
 
         server.createContext("/verify", exchange -> {
-
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
             exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
@@ -98,12 +103,9 @@ public class WebServer {
             sendJson(exchange, 200, new VerifyResponse(true, profile));
         });
 
-        // TODO: DU MUSST CASHEN!
-        //       SEHR WICHTIG!
-
+        // --- HIER IST DER CACHE INTEGRIERT ---
         server.createContext("/skins", exchange -> {
             String path = exchange.getRequestURI().getPath();
-
             String[] parts = path.split("/");
 
             if (parts.length < 3) {
@@ -125,17 +127,32 @@ public class WebServer {
                 }
 
                 uuid = UUID.fromString(playerUUID);
+                String cacheKey = uuid.toString();
+                String response = null;
 
-                String response;
+                // 1. Prüfen, ob ein gültiger Eintrag im Cache liegt
+                CachedSkin cached = skinCache.get(cacheKey);
+                if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_DURATION_MS) {
+                    response = cached.profileJson;
+                } else {
+                    // 2. Wenn nicht im Cache oder abgelaufen -> Neu von Mojang fetchen
+                    try {
+                        response = fetchProfile(uuid);
+                        // Im Cache speichern
+                        skinCache.put(cacheKey, new CachedSkin(response));
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to fetch profile for {}", uuid, e);
 
-                try {
-                    response = fetchProfile(uuid);
-                } catch (Exception e) {
-                    LOGGER.error("Failed to fetch profile for {}", uuid, e);
-
-                    exchange.sendResponseHeaders(500, -1);
-                    exchange.close();
-                    return;
+                        // Falls Mojang blockiert, aber wir zufällig noch alte Daten haben, nutzen wir die Notfall-Daten
+                        if (cached != null) {
+                            response = cached.profileJson;
+                            LOGGER.warn("Using expired cache for {} due to fetch error.", uuid);
+                        } else {
+                            exchange.sendResponseHeaders(500, -1);
+                            exchange.close();
+                            return;
+                        }
+                    }
                 }
 
                 byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
@@ -167,8 +184,9 @@ public class WebServer {
 
     public void stop() {
         server.stop(0);
+        isRunning = false;
     }
-    
+
     private void sendJson(
             HttpExchange exchange,
             int status,
@@ -193,9 +211,20 @@ public class WebServer {
         }
     }
 
-//     public URL getURL() {
-//
-//    }
+    public boolean isStopped() {
+        return !isRunning;
+    }
+
+    // --- CACHE STRUKTUR ---
+    private static class CachedSkin {
+        final String profileJson;
+        final long timestamp;
+
+        CachedSkin(String profileJson) {
+            this.profileJson = profileJson;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
 
     private record VerifyResponse(
             boolean valid,

@@ -1,4 +1,4 @@
-import {connectWebSocket} from "./websocket.ts";
+import {handleWebSocket,} from "./websocket.ts";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -101,7 +101,7 @@ export function verificationLogic(verificationInputs: HTMLInputElement[], loginD
             loginDialog.classList.remove("modal-open")
             sessionStorage.setItem("web-chat-session", verificationReturn.profile.sessionID);
             sessionStorage.setItem("web-chat-profile", JSON.stringify(verificationReturn.profile));
-            connectWebSocket();
+            handleWebSocket();
         } else {
             console.log("Invalid verification code");
         }

@@ -1,61 +1,49 @@
-/* Schlüsselwörter: const, let, function, return, if ... */
 span.keyword {
-    color: #ff7b72;
+    color: #ff6b6b;
     font-weight: 600;
 }
 
-/* Variablen- und Funktionsnamen */
 span.identifier {
-    color: #d2a8ff;
+    color: #d6a8ff;
 }
 
-/* Funktionsnamen */
 span.function {
-    color: #d2a8ff;
+    color: #7dd3fc;
 }
 
-/* Parameter */
 span.parameter {
-    color: #ffa657;
+    color: #ffb86c;
 }
 
-/* Strings: "Hallo", 'Welt', `Template` */
 span.string {
-    color: #a5d6ff;
+    color: #7ee787;
 }
 
-/* Zahlen: 123, 3.14 */
 span.number {
     color: #79c0ff;
 }
 
-/* Kommentare */
 span.comment {
     color: #8b949e;
     font-style: italic;
 }
 
-/* Operatoren: + - = => */
 span.operator {
     color: #ff7b72;
 }
 
-/* Klammern: () {} [] */
 span.punctuation {
-    color: #c9d1d9;
+    color: #d0d1d4;
 }
 
-/* Eigenschaften/Keys: name: "Jason" */
 span.property {
     color: #7ee787;
 }
 
-/* Built-ins: console, Math, JSON ... */
 span.builtin {
-    color: #79c0ff;
+    color: #c792ea;
 }
 
-/* Typen: number, string, int */
 span.type {
     color: #79c0ff;
     font-weight: 500;
@@ -63,8 +51,8 @@ span.type {
 
 pre,
 code {
-    background: #0d1117;
-    color: #c9d1d9;
+    background: #313233;
+    color: #d0d1d4;
 
     border-radius: 0.35rem;
 

@@ -1,14 +1,19 @@
 package com.fren507.webchat;
 
 import com.fren507.webchat.managers.VerifiedProfileManager;
+import com.fren507.webchat.website_backend.WebServer;
+import com.fren507.webchat.website_backend.WebSocketServer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.List;
+import java.util.UUID;
 
 public class WebChat implements ModInitializer {
     public static final String MOD_ID = "web-chat";
@@ -44,6 +49,22 @@ public class WebChat implements ModInitializer {
             socket.sendMessageToWeb(message.signedContent(), sender.getPlainTextName(), sender.getUUID());
         });
 
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            String playerName = handler.getPlayer().getPlainTextName();
+            UUID playerUUID = handler.getPlayer().getUUID();
+
+            // Broadcast a custom system message or join event to the web
+            socket.sendServerMessageToWeb("PlayerJoin", playerName, List.of(playerUUID));
+        });
+
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            String playerName = handler.getPlayer().getPlainTextName();
+            UUID playerUUID = handler.getPlayer().getUUID();
+
+            // Broadcast leave event to the web
+            socket.sendServerMessageToWeb("PlayerLeave", playerName, List.of(playerUUID));
+        });
+
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             socket.stop();
@@ -51,8 +72,10 @@ public class WebChat implements ModInitializer {
         });
 
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            socket.stop();
-            api.stop();
+            if (!socket.isStopped())
+                socket.stop();
+            if (!api.isStopped())
+                api.stop();
         });
     }
 

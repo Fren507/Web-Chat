@@ -1,4 +1,4 @@
-package com.fren507.webchat;
+package com.fren507.webchat.website_backend;
 
 import com.corundumstudio.socketio.Configuration;
 import com.corundumstudio.socketio.SocketIOServer;
@@ -7,12 +7,15 @@ import com.fren507.webchat.managers.TabListManager;
 import com.fren507.webchat.managers.VerifiedProfileManager;
 import com.fren507.webchat.models.ChatMessage;
 import com.fren507.webchat.models.ChatMessageData;
+import com.fren507.webchat.models.ServerMessage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.minecraft.server.MinecraftServer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 public class WebSocketServer {
@@ -23,6 +26,7 @@ public class WebSocketServer {
     private final Logger LOGGER;
     private final URI websiteURI;
     private SocketIOServer server;
+    private boolean isRunning;
 
     public WebSocketServer(int port, VerifiedProfileManager profileManager, Logger LOGGER, URI websiteURI) {
         this.port = port;
@@ -41,6 +45,7 @@ public class WebSocketServer {
         tabListManager.updateHeader(minecraftServer);
 
         server = new SocketIOServer(config);
+        isRunning = true;
 
         // 3. Connection Listener
         server.addConnectListener(client -> {
@@ -85,7 +90,18 @@ public class WebSocketServer {
         server.getBroadcastOperations().sendEvent("newMessage", chatMessage);
     }
 
+    public void sendServerMessageToWeb(String messageType, @Nullable String message, List<UUID> affectedPlayers) {
+        if (server == null) return;
+        ServerMessage serverMessage = new ServerMessage(messageType, message, affectedPlayers);
+        server.getBroadcastOperations().sendEvent("serverMessage", serverMessage);
+    }
+
     public void stop() {
         server.stop();
+        isRunning = false;
+    }
+
+    public boolean isStopped() {
+        return !isRunning;
     }
 }

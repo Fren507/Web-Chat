@@ -73,6 +73,9 @@ dialog {
     max-height: 90vh;
     overflow-y: auto;
 
+    word-break: break-word;
+    overflow-wrap: anywhere;
+
     color: white;
 
     animation: minecraft-open 180ms steps(4);
@@ -156,4 +159,17 @@ dialog {
 
 nav .navbar-brand {
     margin-bottom: 0;
+}
+
+/* Hauptcontainer für die Chat-Nachricht */
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    justify-content: start;
+    gap: 5px;
+}
+
+.playerHead {
+    width: 32px;
+    height: 32px;
 }
