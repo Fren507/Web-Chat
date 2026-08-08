@@ -25,8 +25,9 @@ import org.slf4j.Logger;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,21 +37,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
-/**
- * Ein kombinierter Server, der HTTP-Routen (/api/..., Statische Dateien)
- * und Socket.IO (WebSockets) auf demselben TCP-Port über Netty bedient.
- */
 public class WebChatServer {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final long CACHE_DURATION_MS = 30 * 60 * 1000;
-
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
     private final int port;
     private final VerifiedProfileManager profileManager;
     private final Logger LOGGER;
     private final URI websiteURI;
     private final Map<String, CachedSkin> skinCache = new ConcurrentHashMap<>();
-
     private SocketIOServer server;
     private boolean isRunning;
 
@@ -63,9 +61,22 @@ public class WebChatServer {
 
     private static String fetchProfile(UUID uuid) throws Exception {
         String cleanUuid = uuid.toString().replace("-", "");
-        URL url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + cleanUuid);
-        try (var input = url.openStream()) {
-            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        URI uri = URI.create("https://sessionserver.mojang.com/session/minecraft/profile/" + cleanUuid);
+
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder(uri)
+                .timeout(java.time.Duration.ofSeconds(5))
+                .GET()
+                .build();
+
+        java.net.http.HttpResponse<String> response = HTTP_CLIENT.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        );
+
+        if (response.statusCode() == 200) {
+            return response.body();
+        } else {
+            throw new RuntimeException("Mojang API returned status: " + response.statusCode());
         }
     }
 
@@ -121,7 +132,7 @@ public class WebChatServer {
         });
 
         server.start();
-        LOGGER.info("🚀 Kombinierter HTTP- & Socket.IO-Server läuft auf Port {}", port);
+        LOGGER.info("WebChat started on Port {}!", port);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
@@ -140,12 +151,12 @@ public class WebChatServer {
 
     public void stop() {
         if (server != null && isRunning) {
-            LOGGER.info("Stoppe Web-Chat Server...");
+            LOGGER.info("Stoping the Web-Chat server...");
             isRunning = false;
             try {
                 server.stop();
             } catch (Exception e) {
-                LOGGER.error("Fehler beim Stoppen des WebChat-Servers", e);
+                LOGGER.error("Error while stopping the Web-Chat server", e);
             }
         }
     }
@@ -223,6 +234,8 @@ public class WebChatServer {
 
             VerifiedProfile profile = profileManager.createVerifiedProfile(tokenData.get());
             sendJsonResponse(ctx, OK, GSON.toJson(new VerifyResponse(true, profile)));
+
+            tokenData.get().setValid(false);
         }
 
         private void handleSkins(ChannelHandlerContext ctx, String uri) {
@@ -232,7 +245,7 @@ public class WebChatServer {
                 return;
             }
 
-            String playerUUID = parts[2];
+            String playerUUID = parts[3];
             try {
                 if (playerUUID.length() == 32) {
                     playerUUID = playerUUID.replaceFirst("(.{8})(.{4})(.{4})(.{4})(.{12})", "$1-$2-$3-$4-$5");

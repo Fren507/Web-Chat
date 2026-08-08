@@ -1,6 +1,5 @@
 import {handleWebSocket,} from "./websocket.ts";
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+import {serverUrl} from "./main.ts";
 
 export function setupVerificationInput(): HTMLInputElement[] {
     const inputs = [
@@ -113,7 +112,7 @@ export async function verifyVerificationCode(
 ): Promise<VerificationReturn> {
     console.log(token);
     if (!token || token.length !== 12) return {valid: false, profile: null};
-    const response = await fetch(`${SERVER_URL}/verify`, {
+    const response = await fetch(`${serverUrl.toString()}api/verify`, {
         method: "POST",
         body: token,
     });

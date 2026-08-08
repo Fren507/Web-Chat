@@ -42,5 +42,10 @@ replay_*.log
 # Website
 
 web/node_modules
-*.env
-!*.env.example
+src/main/resources/web/
+
+# enviroment variables
+*.env.*
+!*.env.*.example
+
+.zed/

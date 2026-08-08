@@ -2,9 +2,7 @@ import type {VerificationProfile} from "./verificationCode.ts";
 import {io, Socket} from "socket.io-client";
 import {minecraftToHTML} from "./minecraftToHTML.ts";
 import {getMessageNode} from "./minecraftSkin.ts";
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+import {serverUrl} from "./main.ts";
 
 export function createMessage(
     message: string,
@@ -48,7 +46,11 @@ export function connectWebSocket(): {
 
     // getPlayerSkin(profile.playerUUID)
 
-    const socket = io(SOCKET_URL);
+    //const socket = io(socketUrl);
+    //const socket = io("http://localhost:9124", {
+    //    transports: ["websocket"],
+    //});
+    const socket = io(serverUrl);
 
     socket.on("connect", () => {
         console.log("Connected to Java Server!");
@@ -76,12 +78,14 @@ export function connectWebSocket(): {
             if (chatBox) {
                 getMessageNode(
                     data.username,
-                    minecraftToHTML(`§r <${data.username}${data.fromWeb ? " §b[WEB]" : ""}§r> ${data.message}`),
-                    data.senderUUID,
-                    SERVER_URL
-                ).then(message => {
+                    minecraftToHTML(
+                        `§r <${data.username}${data.fromWeb ? " §b[WEB]" : ""}§r> ${data.message}`,
+                    ),
+                    [data.senderUUID],
+                    serverUrl.toString(),
+                ).then((message) => {
                     chatBox.appendChild(message);
-                })
+                });
 
                 chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
             }
@@ -97,7 +101,7 @@ export function connectWebSocket(): {
     //   ]
     // }
 
-    type MessageType = "PlayerLeave" | "PlayerJoin";
+    type MessageType = "PlayerLeave" | "PlayerJoin" | "GameMessage";
 
     socket.on(
         "serverMessage",
@@ -111,23 +115,39 @@ export function connectWebSocket(): {
                     case "PlayerJoin":
                         getMessageNode(
                             data.message,
-                            minecraftToHTML(`§e${data.message} hat das Spiel betreten`),
-                            data.affectedPlayers[0]!,
-                            SERVER_URL
-                        ).then(message => {
+                            minecraftToHTML(
+                                `§e${data.message} hat das Spiel betreten`,
+                            ),
+                            data.affectedPlayers,
+                            serverUrl.toString(),
+                        ).then((message) => {
                             chatBox.appendChild(message);
-                        })
+                        });
                         break;
 
                     case "PlayerLeave":
                         getMessageNode(
                             data.message,
-                            minecraftToHTML(`§e${data.message} hat das Spiel verlassen`),
-                            data.affectedPlayers[0]!,
-                            SERVER_URL
-                        ).then(message => {
+                            minecraftToHTML(
+                                `§e${data.message} hat das Spiel verlassen`,
+                            ),
+                            data.affectedPlayers,
+                            serverUrl.toString(),
+                        ).then((message) => {
                             chatBox.appendChild(message);
-                        })
+                        });
+                        break;
+                    case "GameMessage":
+                        getMessageNode(
+                            data.message,
+                            minecraftToHTML(
+                                `§e${data.message} hat das Spiel verlassen`,
+                            ),
+                            data.affectedPlayers,
+                            serverUrl.toString(),
+                        ).then((message) => {
+                            chatBox.appendChild(message);
+                        });
                         break;
                     default:
                         return;
@@ -153,8 +173,8 @@ export function connectWebSocket(): {
 }
 
 export function handleWebSocket(): {
-    profile: VerificationProfile,
-    sessionID: string
+    profile: VerificationProfile;
+    sessionID: string;
 } | null {
     const connectWebSocketReturn = connectWebSocket();
     if (
@@ -193,7 +213,7 @@ export function handleWebSocket(): {
 
         return {
             profile,
-            sessionID
-        }
+            sessionID,
+        };
     }
 }

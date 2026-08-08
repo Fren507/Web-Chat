@@ -1,8 +1,7 @@
 package com.fren507.webchat;
 
 import com.fren507.webchat.managers.VerifiedProfileManager;
-import com.fren507.webchat.website_backend.WebServer;
-import com.fren507.webchat.website_backend.WebSocketServer;
+import com.fren507.webchat.website_backend.WebChatServer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
@@ -25,59 +24,48 @@ public class WebChat implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Hello Fabric world!");
+        LOGGER.info("Starting Web-Chat!");
 
         VerifiedProfileManager manager = new VerifiedProfileManager();
-        WebServer api = new WebServer(8080, manager, LOGGER);
-        WebSocketServer socket = new WebSocketServer(9092, manager, LOGGER, URI.create("https://github.com/Fren507/Web-Chat/"));
+        WebChatServer server = new WebChatServer(9123, manager, LOGGER, URI.create("https://github.com/Fren507/Web-Chat/"));
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+        ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
             try {
-                socket.start(server);
+                server.start(minecraftServer);
             } catch (Exception e) {
-                LOGGER.error("Failed to start WebSocket", e);
-            }
-
-            try {
-                api.start();
-            } catch (Exception e) {
-                LOGGER.error("Failed to start API", e);
+                LOGGER.error("Failed to start WebServer", e);
             }
         });
 
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
-            socket.sendMessageToWeb(message.signedContent(), sender.getPlainTextName(), sender.getUUID());
+            server.sendMessageToWeb(message.signedContent(), sender.getPlainTextName(), sender.getUUID());
         });
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, minecraftServer) -> {
             String playerName = handler.getPlayer().getPlainTextName();
             UUID playerUUID = handler.getPlayer().getUUID();
 
             // Broadcast a custom system message or join event to the web
-            socket.sendServerMessageToWeb("PlayerJoin", playerName, List.of(playerUUID));
+            server.sendServerMessageToWeb("PlayerJoin", playerName, List.of(playerUUID));
         });
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, minecraftServer) -> {
             String playerName = handler.getPlayer().getPlainTextName();
             UUID playerUUID = handler.getPlayer().getUUID();
 
             // Broadcast leave event to the web
-            socket.sendServerMessageToWeb("PlayerLeave", playerName, List.of(playerUUID));
+            server.sendServerMessageToWeb("PlayerLeave", playerName, List.of(playerUUID));
         });
 
-
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            socket.stop();
-            api.stop();
+        ServerMessageEvents.GAME_MESSAGE.register((minecraftServer, message, overlay) -> {
+            if (!overlay) { // Skip action bar messages
+                server.sendServerMessageToWeb("GameMessage", message.getString(), List.of());
+            }
         });
 
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            if (!socket.isStopped())
-                socket.stop();
-            if (!api.isStopped())
-                api.stop();
+        ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
+            server.stop();
         });
     }
 
 }
-

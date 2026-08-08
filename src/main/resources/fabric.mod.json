@@ -3,13 +3,12 @@
   "id": "web-chat",
   "version": "${version}",
   "name": "Web Chat",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "A mod to chat with online player from the browser!",
   "authors": [
-    "Me!"
+    "Jason Frenzel"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "sources": "https://github.com/Fren507/Web-Chat"
   },
   "license": "CC0-1.0",
   "icon": "assets/web-chat/icon.png",
@@ -19,9 +18,6 @@
       "com.fren507.webchat.WebChat"
     ]
   },
-  "mixins": [
-    "web-chat.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.1.2",

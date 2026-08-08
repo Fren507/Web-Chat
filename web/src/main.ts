@@ -4,7 +4,8 @@ import "./assets/css/minecraft.css";
 import "./assets/css/style.css";
 import "./assets/css/code.css";
 
-// const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const serverUrl = new URL(window.location.origin);
+export {serverUrl,};
 
 const verificationCodeHtml = `
 <div class="verification-code align-center">
@@ -52,7 +53,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = /*html*/ `
             style="min-height: calc(100dvh - var(--navbar-height, 57px))"
     ></main>
 
-    <footer class="bg-secondary text-primary pl-xs text-center">
+    <footer class="bg-secondary text-primary pl-xs text-center pb-sm">
         <div class="p-md">
             <h3>Web-Chat</h3>
 
@@ -81,7 +82,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = /*html*/ `
             </div>
         </div>
 
-        ©2026 Fren507
+        ©2026 Jason Frenzel
     </footer>`;
 
 const content = document.getElementById("content")! as HTMLDivElement;
@@ -104,7 +105,7 @@ if (window.location.pathname == "/") {
                         <small class="hidden sm-block">Minecraft WebSocket</small>
                     </div>
 
-                    <small id="chat-status">
+                    <small id="connection-status">
                         Offline
                     </small>
                 </div>
@@ -199,27 +200,6 @@ if (window.location.pathname == "/") {
                             <a href="/info" class="button button-primary">
                                 Mehr über den Web-Chat
                             </a>
-                        </div>
-                    </div>
-
-                    <div class="col-4 col-md-12">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h3>Verbindung</h3>
-
-                                <p>
-                                    <strong id="connection-status">
-                                        Nicht verbunden
-                                    </strong>
-                                </p>
-
-                                <p>
-                                    <small>
-                                        Die Verbindung wird nach erfolgreicher
-                                        Verifizierung hergestellt.
-                                    </small>
-                                </p>
-                            </div>
                         </div>
                     </div>
                 </div>
